@@ -49,24 +49,25 @@ bool strcmp(string a, string b)
             return 0;
     return 1;
 }
- int MatchSHA1File(std::string StorageName,std::string Filename){
-    SHA1 Creaper=SHA1();
-    std::string CurrentKey=Creaper.from_file(Filename);
+int MatchSHA1File(std::string StorageName, std::string Filename)
+{
+    SHA1 Creaper = SHA1();
+    std::string CurrentKey = Creaper.from_file(Filename);
     std::ifstream StorageFile(StorageName);
     std::stringstream ss;
-    ss<<StorageFile.rdbuf();
+    ss << StorageFile.rdbuf();
     StorageFile.close();
-    if(strcmp(ss.str(),CurrentKey)){
+    if (strcmp(ss.str(), CurrentKey))
+    {
         return 1;
-        
     }
-    else{
+    else
+    {
         std::ofstream StorageFileOverwrite(StorageName);
-        StorageFileOverwrite<<CurrentKey;
+        StorageFileOverwrite << CurrentKey;
         StorageFileOverwrite.close();
         return 0;
     }
-
 }
 namespace TokensEnums
 {
@@ -92,9 +93,9 @@ namespace TokensEnums
         DEC,      // decrement Incrementator
         JMP,
         JE,
-        JNE,      // jump without condition
-        JME,      // jump if Mathout>MathLeft more
-        JLE,      // jump if Mathout<MathLeft
+        JNE, // jump without condition
+        JME, // jump if Mathout>MathLeft more
+        JLE, // jump if Mathout<MathLeft
         Addr,
         RETURN,
         // operators
@@ -116,7 +117,7 @@ namespace TokensEnums
         MATHOUT,   // MO
         CODEPTR,   // CPR
         COUNTER,   // CTR
-
+        NBDR,      // NumBer Defined Register
     };
     class Register
     {
@@ -185,6 +186,7 @@ namespace TokensEnums
         map<string, int> RegisterNameToID;
         map<string, int> LabeltoStart;
         vector<ExecutableToken *> ProgrameCS;
+        vector<int>CallStack;
         void INITRegister(string name, DefinedRegister RID)
         {
             RegisterIDToInstance[RID] = new Register(RID);
@@ -200,9 +202,6 @@ namespace TokensEnums
         void DefineLabel(string name, int start)
         {
             LabeltoStart[name] = start;
-        }
-        void INITKeyWords()
-        {
         }
         int Execute(string FunctionStart = "Start")
         {
@@ -255,10 +254,12 @@ namespace TokensEnums
                     }
                     break;
                 case Token::JMP:
-
+                    this->CallStack.push_back(i+1);
+                    i=this->LabeltoStart[Arg_1->StrData];
                     break;
                 case Token::RETURN:
-
+                    i=this->CallStack[this->CallStack.size()-1];
+                    this->CallStack.pop_back();
                     break;
                 case Token::PUT:
                     cout << this->DataRam[Arg_1->Data] << endl;
@@ -271,6 +272,7 @@ namespace TokensEnums
         }
         int Compiler(string SRC)
         {
+            SRC.push_back('\n');
             string substring = "";
             for (int i = 0; i < SRC.size(); i++)
             {
@@ -293,6 +295,7 @@ namespace TokensEnums
                     RegisterCreate("MR", DefinedRegister::MATHRIGHT);
                     RegisterCreate("MO", DefinedRegister::MATHOUT);
                     RegisterCreate("CTR", DefinedRegister::COUNTER);
+
                     else if (substring[0] == '$')
                     {
                         try
@@ -320,6 +323,15 @@ namespace TokensEnums
                         ProgrameCS.push_back(new ExecutableToken(Token::Label, 0, removeL(substring)));
                         this->LabeltoStart[removeL(substring)] = ProgrameCS.size();
                     }
+                    else if (substring[0] == '|')
+                    {
+                        ifstream NewObj(removeF(substring));
+                        stringstream ss;
+                        ss << NewObj.rdbuf();
+                        NewObj.close();
+                        this->Compiler(ss.str());
+                        ss.clear();
+                    }
                     else
                     {
                         if (!strcmp(substring, ""))
@@ -335,7 +347,7 @@ namespace TokensEnums
             }
             for (int i = 0; i < 4; i++)
             {
-                // this->ProgrameCS.push_back(new ExecutableToken(999,0,""));
+                this->ProgrameCS.push_back(new ExecutableToken(999, 0, ""));
             }
             return 0;
         }
@@ -347,6 +359,8 @@ namespace TokensEnums
 
 int main(int argc, char **argv)
 {
+    
+    
     TokensEnums::Interpreter *Int = new TokensEnums::Interpreter();
     Int->INITRegisters();
     ifstream SourceFile(argv[1]);
@@ -354,4 +368,5 @@ int main(int argc, char **argv)
     ss << SourceFile.rdbuf();
     Int->Compiler(ss.str());
     Int->Execute();
+    getchar();
 }
