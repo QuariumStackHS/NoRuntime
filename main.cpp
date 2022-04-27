@@ -3,9 +3,11 @@
 #include <vector>
 #include <map>
 #include <sstream>
+#include "3rd_Party/SHA1.hpp"
 #include <string>
 
 using namespace std;
+
 string removeIdentifier(string K)
 {
     string Out = "";
@@ -46,6 +48,25 @@ bool strcmp(string a, string b)
         if (a[i] != b[i])
             return 0;
     return 1;
+}
+ int MatchSHA1File(std::string StorageName,std::string Filename){
+    SHA1 Creaper=SHA1();
+    std::string CurrentKey=Creaper.from_file(Filename);
+    std::ifstream StorageFile(StorageName);
+    std::stringstream ss;
+    ss<<StorageFile.rdbuf();
+    StorageFile.close();
+    if(strcmp(ss.str(),CurrentKey)){
+        return 1;
+        
+    }
+    else{
+        std::ofstream StorageFileOverwrite(StorageName);
+        StorageFileOverwrite<<CurrentKey;
+        StorageFileOverwrite.close();
+        return 0;
+    }
+
 }
 namespace TokensEnums
 {
